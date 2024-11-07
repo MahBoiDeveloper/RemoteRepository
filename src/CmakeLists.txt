@@ -1,0 +1,156 @@
+# General settings
+
+    # Definitions from ../CMakeLists.txt
+    get_property(PROJECT_DESTINATION_FOLDER     GLOBAL PROPERTY PROJECT_DESTINATION_FOLDER)     # Exe folder
+    get_property(PROJECT_DESTINATION_BIN_FOLDER GLOBAL PROPERTY PROJECT_DESTINATION_BIN_FOLDER) # Bin folder
+
+    # Set debug compilation flags
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fexceptions")
+
+    # Set release compilation flags
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+
+    # Look at cmake.org about how to link .dlls           - https://cmake.org/pipermail/cmake/2018-August/068011.html
+    # And look at gnu.org about how to work ld.exe linker - https://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_node/ld_3.html#:~:text=Output%20Sections).-,%2D%2Dwhole%2Darchive,-For%20each%20archive
+    # --no-whole-archive used due to because --whole-archive gives error at linking time with .rc files
+    # 3 days pissing of cmake and this fucking config (c) mah_boi
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++ -static -lwinpthread")
+
+# Main target configuration
+
+    # Editor target name
+    set(MAIN_TARGET_NAME "HotkeyEditor")
+    set(ACTUAL_EXE_NAME "LoadEditor")
+    
+    # Define editor executable
+    add_executable(${MAIN_TARGET_NAME})
+
+    # Define a list of all sources 
+    file(
+        GLOB_RECURSE SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp
+    )
+
+    # Define a list of all GUI sources
+    file(
+        GLOB_RECURSE EXCLUDED_GRAPHIC_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/GUI/*.[ch]pp
+    )
+
+    # Remove all GUI sources from main sources list
+    list(REMOVE_ITEM SOURCES ${EXCLUDED_GRAPHIC_SOURCES})
+    
+    # Remove launch target source file from main sources list
+    list(REMOVE_ITEM SOURCES "MainStarter.cpp")
+
+    # Assign source files to the main target
+    target_sources(
+        ${MAIN_TARGET_NAME}
+        PRIVATE
+        ${SOURCES}
+        "GUI/QtSources/EditorDescription.rc"
+    )
+
+    # Set output directory
+    set_target_properties(
+        ${MAIN_TARGET_NAME}
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_DESTINATION_BIN_FOLDER}
+        OUTPUT_NAME ${ACTUAL_EXE_NAME}
+    )
+    
+    # Add a Windows library dependency to the main target
+    target_link_libraries(${MAIN_TARGET_NAME} PRIVATE rpcrt4)
+
+    # Attach GUI subproject
+    add_subdirectory(GUI)
+
+    # Add graphic dependency to the main target
+    target_link_libraries(${MAIN_TARGET_NAME} PRIVATE GUI)
+    
+# Starter target configuration
+
+    # Starter target name
+    set(STARTER_TARGET_NAME "HotkeyEditorStarter")
+
+    # Define starter executable with source files
+    add_executable(
+        ${STARTER_TARGET_NAME}
+        "MainStarter.cpp"
+        "GUI/QtSources/StarterDescription.rc"
+    )
+
+    # Define output directory and file name
+    set_target_properties(
+        ${STARTER_TARGET_NAME}
+        PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY ${PROJECT_DESTINATION_FOLDER}
+        OUTPUT_NAME ${MAIN_TARGET_NAME}
+    )
+
+    # Create a preprocessor variable with the path to the main program relative to the starter
+    target_compile_definitions(${STARTER_TARGET_NAME} PRIVATE
+        -DPROJECT_EXE_RELATIVE_PATH="$<PATH:RELATIVE_PATH,$<TARGET_FILE:${MAIN_TARGET_NAME}>,${PROJECT_DESTINATION_FOLDER}>"
+    )
+
+# Managing additional source files
+
+    # Declare json files
+    set(
+        ADDITIONAL_RESOURCES
+        "TechTree.json"
+        "Settings.json"
+    )
+
+    # Copy json files
+    foreach(CURRENT_FILE ${ADDITIONAL_RESOURCES})
+        configure_file(
+            ${CURRENT_FILE}
+            ${PROJECT_DESTINATION_RESOURCES_FOLDER}
+            COPYONLY
+        )
+    endforeach()
+
+    # Create datasamples directory
+    file(MAKE_DIRECTORY ${PROJECT_DESTINATION_RESOURCES_FOLDER}/DataSamples)
+
+    # Find datasamples files
+    file(
+        GLOB_RECURSE DATA_SAMPLES_FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/DataSamples/*
+    )
+    
+    # Copy datasamples files
+    foreach(CURRENT_FILE ${DATA_SAMPLES_FILES})
+        configure_file(
+            ${CURRENT_FILE}
+            ${PROJECT_DESTINATION_RESOURCES_FOLDER}/DataSamples
+            COPYONLY
+        )
+    endforeach()
+
+# Qt libs linking aka copying dependecies to the standalone release version of the project
+    
+    # Find the qt libs deploy program
+    find_program(WINDEPLOYQT_PROGRAM windeployqt)
+
+    # Find the environment setup script for the deployment
+    find_program(QTENV_BAT qtenv2.bat)
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+
+        # Deploy Qt and other dlls to the Editor/Resource folder
+        add_custom_command(
+            TARGET ${MAIN_TARGET_NAME}
+            POST_BUILD
+            # Configure environment
+            COMMAND ${QTENV_BAT}
+            # Deploy
+            COMMAND ${WINDEPLOYQT_PROGRAM}
+                --compiler-runtime
+                --force
+                --dir $<TARGET_PROPERTY:${MAIN_TARGET_NAME},RUNTIME_OUTPUT_DIRECTORY>
+                $<TARGET_FILE:${MAIN_TARGET_NAME}>
+        )
+
+    endif()
