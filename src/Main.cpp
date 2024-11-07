@@ -18,13 +18,13 @@
 
 using namespace std;
 
-int ShowErrorMessage(const char* txt)
+int ShowErrorMessage(const char* msg)
 {
     // Log exception message
-    LOGGER->LogException(txt);
+    LOGGER->LogException(msg);
     
     // And show it to user
-    QMessageBox::critical(nullptr, LOGGER->EXCEPTION_HEADER, txt);
+    QMessageBox::critical(nullptr, LOGGER->EXCEPTION_HEADER, msg);
 
     // Also return -1 as error
     return -1;
