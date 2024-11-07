@@ -8,6 +8,7 @@ on:
       - master
       - main
       - development
+      - release
 
 jobs:
   cppcheck-no-headers:
