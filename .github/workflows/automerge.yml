@@ -1,25 +1,6 @@
 name: Automerge
 
 on:
-  # Try enabling auto-merge for all open pull requests.
-  # (Only recommended for testing.)
-  push:
-
-  # Try enabling auto-merge for all open pull requests.
-  schedule:
-    - cron: 0 * * * *
-
-  # Try enabling auto-merge when a pull request is approved. Note that this
-  # event skips the check for the pull request author association and instead
-  # checks the review author association.
-  pull_request_review:
-    types:
-      - submitted
-
-  # Try enabling auto-merge for a pull request when a draft is marked as
-  # “ready for review”, when a required label is applied or when a
-  # “do not merge” label is removed, or when a pull request is updated in
-  # any way (opened, synchronized, reopened, edited).
   pull_request_target:
     types:
       - opened
@@ -47,8 +28,7 @@ jobs:
     steps:
       - uses: reitermarkus/automerge@v2
         with:
-          token: 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
+          token: ${{secrets.GITHUB_TOKEN}}
           merge-method: rebase
           pull-request: ${{ github.event.inputs.pull-request }}
-          review: ${{ github.event.inputs.review }}
           dry-run: true
