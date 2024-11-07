@@ -19,3 +19,11 @@ echo Starting editor in 5 seconds
 timeout /t 5
 cd .\build\exe\
 start "" HotkeyEditor.exe
+
+
+
+
+
+
+
+
