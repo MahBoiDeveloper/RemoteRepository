@@ -8,9 +8,12 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - id: automerge
-        name: automerge
-        uses: "pascalgn/automerge-action@v0.16.4"
-        env:
-          # Это неправильно писать токен, но он истекает через сутки...
-          GITHUB_TOKEN: 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
+      - uses: reitermarkus/automerge@v2
+        with:
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          merge-method: rebase
+          do-not-merge-labels: never-merge
+          required-labels: automerge
+          pull-request: ${{ github.event.inputs.pull-request }}
+          review: ${{ github.event.inputs.review }}
+          dry-run: true
