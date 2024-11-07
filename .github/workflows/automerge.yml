@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: reitermarkus/automerge@v2
         with:
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          token: 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
           merge-method: rebase
           do-not-merge-labels: never-merge
           required-labels: automerge
